@@ -6,7 +6,6 @@ echo "***********************************************************"
 echo "BELOW ARE THE LIST OF NAMESPACES PRESENT ON THIS K8 CLUSTER"
 echo "***********************************************************"
 
-getns=$(kubectl get ns | awk '{ print $1 }')
 readarray -t namespaces < <(kubectl get ns | awk '{ print $1 }')
 
 for i in "${!namespaces[@]}"
@@ -62,7 +61,6 @@ else
     
     read -p "Enter the container you want to check logs of: " choice
     container=${containers[$((choice-1))]}
-    echo "CONTAINER SELECTED $container"
     
     kubectl logs -n $ns $pod -c $container -f
 fi
