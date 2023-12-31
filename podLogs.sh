@@ -12,6 +12,104 @@ handle_error() {
     }    
 }
 
+logs_banner(){
+  start_end=$1
+  
+  if [[ $start_end -eq "1" ]]; then
+     echo "******************************LOGS START*******************************************"
+  else
+     echo "******************************LOGS END*********************************************"
+  fi
+}
+
+tail_100_lines(){
+  if [[ -z $container ]]; then
+    logs_banner 1
+    kubectl logs -n $ns $pod --tail=100
+    logs_banner 0
+  else
+    logs_banner 1
+    kubectl logs -n $ns $pod -c $container --tail=100
+    logs_banner 0
+  fi
+}
+
+live_tail_logs(){
+  if [[ -z $container ]]; then
+    logs_banner 1
+    kubectl logs -n $ns $pod -f
+    logs_banner 0
+  else
+    logs_banner 1
+    kubectl logs -n $ns $pod -c $container -f
+    logs_banner 0
+  fi
+}
+
+print_logs(){
+  if [[ -z $container ]]; then
+    logs_banner 1
+    kubectl logs -n $ns $pod
+    logs_banner 0
+  else
+    logs_banner 1
+    kubectl logs -n $ns $pod -c $container
+    logs_banner 0
+  fi
+}
+
+search_logs(){
+  echo ""
+  read -p "Enter the search pattern you want to search the logs against : " pattern
+  
+  if [[ -z $container ]]; then 
+    logs_banner 1
+    kubectl logs -n $ns $pod | grep $pattern -i
+    logs_banner 0
+  else
+    logs_banner 1
+    kubectl logs -n $ns $pod -c $container | grep $pattern -i
+    logs_banner 0
+  fi
+}
+
+advanced_menu(){
+  echo "Do you want to go to advanced options ?"
+  echo "0. Exit"
+  echo "1. Advanced"
+
+  read -p "Enter your option : " option
+  if [[ $option -eq "0" ]]; then
+     return 0
+  fi
+
+  clear
+  while true; do
+    echo "This is the advanced menu. Choose your option of how you want to view logs"
+    echo "0 : Exit"
+    echo "1 : Tail last 100 lines"
+    echo "2 : Live tail logs (would require ctrl+F to return to terminal)"
+    echo "3 : Print full logs"
+    echo "4 : Search logs with search pattern"
+    echo ""
+    read -p "Enter your option : " choice
+    
+    if [[ $choice -eq "0" ]]; then
+       break
+    fi
+    
+    case $choice in 
+        0) return 0 ;;
+        1) tail_100_lines ;;
+        2) live_tail_logs ;;
+        3) print_logs ;;
+        4) search_logs ;;  
+    esac
+    
+    echo ""; echo "";
+  done
+}
+
 containers_list(){
   clear
   while true; do
@@ -31,8 +129,9 @@ containers_list(){
       break
     fi
     container=${containers[$((choice-1))]}
-
-    kubectl logs -n $ns $pod -c $container --tail=100
+    
+    tail_100_lines
+    advanced_menu
     echo "";echo "";
   done
 }
@@ -42,7 +141,8 @@ pod_logs(){
   containers=($containers)
   
   if [[ "${#containers[@]}" -eq '1' ]]; then
-    kubectl logs -n $ns $pod --tail=100
+    tail_100_lines
+    advanced_menu
     echo "";echo "";
   else
     containers_list
@@ -85,7 +185,6 @@ list_pods(){
 
     if ! ((pod_no <= pods_count)); then
       handle_error false "Entered number is out of range. Please enter a valid number"
-      continue
     fi
     
     pod=$(echo "$pods_list" | awk -v num="$pod_no" 'NR == num {print $2}')
