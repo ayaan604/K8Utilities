@@ -132,6 +132,7 @@ containers_list(){
     
     tail_100_lines
     advanced_menu
+	container=""
     echo "";echo "";
   done
 }
